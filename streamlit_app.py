@@ -18,7 +18,7 @@ def send(message):
 def main():
     # Set the page title and layout
     st.set_page_config(page_title="Gemini ChatBot",
-                    page_icon=":robot_face:",
+                    page_icon="🤖",
                     layout="wide",
                     )
     st.title(':left_speech_bubble: :blue[AI ChatBot using Gemini] :left_speech_bubble:')
@@ -46,7 +46,7 @@ def main():
                 else:
                     text += "Empty page"
             send(text)
-        st.success('File Loaded!', icon=':white_check_mark:')
+        st.success('File Loaded!', icon='✅')
         st.balloons()
     
     if user_input:
