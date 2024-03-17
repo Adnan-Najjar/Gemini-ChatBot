@@ -11,9 +11,11 @@ chat = model.start_chat()
 
 def send(message):
     try:
-        return chat.send_message(message).text
+        response = chat.send_message(message).text
     except:
         st.warning("Query Blocked!", icon=':warning:')
+        return "Query Blocked!"
+    return response
 
 def main():
     # Set the page title and layout
