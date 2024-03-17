@@ -1,5 +1,3 @@
-#run: streamlit run streamlit_app.py
-
 import google.generativeai as genai
 import streamlit as st
 from PyPDF2 import PdfReader
@@ -21,7 +19,7 @@ def main():
                     page_icon="🤖",
                     layout="wide",
                     )
-    st.title(':left_speech_bubble: :blue[AI ChatBot using Gemini] :left_speech_bubble:')
+    st.title(':blue[AI ChatBot using Gemini] :left_speech_bubble:')
 
     uploaded_file = st.file_uploader("Upload file ", type="pdf")
     user_input = st.chat_input("What is up?")
