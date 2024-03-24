@@ -1,3 +1,6 @@
+langchain_text_splitters=
+langchain_google_genai
+google-generativeai
 streamlit
-google.generativeai
 PyPDF2
+langchain==0.1.0
