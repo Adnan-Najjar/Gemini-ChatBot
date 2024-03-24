@@ -65,6 +65,7 @@ def main():
 
     uploaded_file = st.file_uploader("Upload file ", type="pdf")
     user_input = st.chat_input("What is up?")
+    st.subheader("Write 'file:' to access the file content")
 
     # Init chat history
     if "messages" not in st.session_state:
