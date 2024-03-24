@@ -1,29 +1,71 @@
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 import google.generativeai as genai
+from langchain_community.vectorstores.faiss import FAISS
+from langchain.chains.question_answering import load_qa_chain
 import streamlit as st
 from PyPDF2 import PdfReader
+from langchain.prompts import PromptTemplate
 
-# Start gemini model and chat
-genai.configure(api_key='AIzaSyBKQ_tbS34bR0Z6MM7j2iE5T4sEkZlM98k')
-model = genai.GenerativeModel('gemini-pro')
-chat = model.start_chat()
+# Google api key
+GOOGLE_API_KEY = 'AIzaSyBKQ_tbS34bR0Z6MM7j2iE5T4sEkZlM98k'
 
-def send(message):
-    try:
-        return chat.send_message(message).text
-    except:
-        st.warning("Query Blocked!", icon='⚠️')
+# model for normal chatbot
+genai.configure(api_key=GOOGLE_API_KEY)
+model0 = genai.GenerativeModel(model_name="gemini-pro")
 
+# model for documents chatbot
+model = ChatGoogleGenerativeAI(google_api_key=GOOGLE_API_KEY, model="gemini-pro")
+
+def get_conversational_chain():
+
+    prompt_template = """
+    Be a helpful assistant and help with this pdf file and be open for any questions about it\n\n
+    Context:\n {context}?\n
+    Question: \n{question}\n
+
+    Answer:
+    """
+
+    prompt = PromptTemplate(template = prompt_template, input_variables = ["context", "question"])
+    chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
+
+    return chain
+
+def get_response(user_question,file):
+    if user_question.startswith("file:"):
+        pdf_reader = PdfReader(file)
+        text = ""
+        for page in pdf_reader.pages:
+            if page.extract_text():
+                text += page.extract_text()
+        
+        chunks = RecursiveCharacterTextSplitter(chunk_size=1000,
+                                                chunk_overlap=200).split_text(text)
+
+        embeddings = GoogleGenerativeAIEmbeddings(google_api_key=GOOGLE_API_KEY, model = "models/embedding-001")
+        vector_store = FAISS.from_texts(chunks, embeddings)
+        
+        docs = vector_store.similarity_search(user_question)
+        chain = get_conversational_chain()
+        response = chain.run(input_documents=docs, question=user_question)
+        return response
+    else:
+        response = model0.generate_content(user_question).text
+        return response
+    
 def main():
+
     # Set the page title and layout
     st.set_page_config(page_title="Gemini ChatBot",
                     page_icon="🤖",
                     layout="wide",
                     )
-    st.title(':blue[AI ChatBot using Gemini] :left_speech_bubble:')
+    st.title(':rainbow[AI ChatBot using Gemini] :left_speech_bubble:')
 
     uploaded_file = st.file_uploader("Upload file ", type="pdf")
     user_input = st.chat_input("What is up?")
-    
+
     # Init chat history
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -31,21 +73,7 @@ def main():
     # Display messagess
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
-            st.markdown(message ["content"])
-
-    # Read the PDF and send it to the AI
-    if uploaded_file:
-        with st.spinner('Loading the file...'):
-            pdf_reader = PdfReader(uploaded_file)
-            text = ""
-            for page in pdf_reader.pages:
-                if page.extract_text():
-                    text += page.extract_text()
-                else:
-                    text += "Empty page"
-            send(text)
-        st.success('File Loaded!', icon='✅')
-        st.balloons()
+            st.markdown(message["content"])
     
     if user_input:
         with st.spinner('Responding...'):
@@ -58,8 +86,8 @@ def main():
                 st.session_state.messages.append({"role": "user", "content": user_input})
                 
                 # Create response
-                response = f"ChatBot:\n {send(user_input)}"
-
+                response = get_response(user_input,uploaded_file)
+            
             # ChatBot chat
             with st.chat_message("assistant"):
                 # Display response
