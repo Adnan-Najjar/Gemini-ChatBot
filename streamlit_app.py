@@ -87,7 +87,10 @@ def main():
                 st.session_state.messages.append({"role": "user", "content": user_input})
                 
                 # Create response
-                response = get_response(user_input,uploaded_file)
+                try:
+                    response = get_response(user_input,uploaded_file)
+                except:
+                    response = "Error getting the response"
             
             # ChatBot chat
             with st.chat_message("assistant"):
