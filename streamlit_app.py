@@ -30,10 +30,9 @@ def get_response(user_question):
         chunks = st.session_state.file
         
         # for small files use it as a whole
-        if len(chunks)<5:
-            context = '\n'.join(chunks)
+        context = '\n'.join(chunks)
         # for big files use embeddings and vector store to get chunks relevant to the question
-        else:
+        if len(chunks)>100:
             embeddings = GoogleGenerativeAIEmbeddings(google_api_key=GOOGLE_API_KEY, model = "models/embedding-001")
             vector_store = FAISS.from_texts(chunks, embeddings)
             docs = vector_store.similarity_search(user_question)
