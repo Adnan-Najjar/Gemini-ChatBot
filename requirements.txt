@@ -5,4 +5,4 @@ streamlit
 PyPDF2
 langchain
 faiss-cpu
-PIL.image
+PIL
