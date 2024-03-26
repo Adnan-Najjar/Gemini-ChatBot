@@ -4,6 +4,7 @@ import google.generativeai as genai
 from langchain_community.vectorstores.faiss import FAISS
 import streamlit as st
 from PyPDF2 import PdfReader
+import PIL.Image
 
 # Google api key
 GOOGLE_API_KEY = 'AIzaSyBKQ_tbS34bR0Z6MM7j2iE5T4sEkZlM98k'
@@ -13,20 +14,33 @@ genai.configure(api_key=GOOGLE_API_KEY)
 model = genai.GenerativeModel(model_name="gemini-pro")
 chat = model.start_chat(history=[])
 
+def load_png(image,question=" "):
+    img = PIL.Image.open(image)
+    visionModel = genai.GenerativeModel('gemini-pro-vision')
+    response = visionModel.generate_content([question,img])
+    response.resolve()
+    
+    return response.text
+
+
 def load_pdf(file):
     pdf_reader = PdfReader(file)
     text = ""
     for page in pdf_reader.pages:
         if page.extract_text():
             text += page.extract_text() + " "
-
+    
+    print(text)
+    
     chunks = RecursiveCharacterTextSplitter(chunk_size=1000,
                                             chunk_overlap=200).split_text(text)
     return chunks
 
-def get_response(user_question):
+def get_response(user_question,img):
     # use the file in the AI if the query starts with 'file:'
-    if user_question.startswith("file:"):
+    if user_question.startswith("img:"):
+        return load_png(img,user_question)
+    elif user_question.startswith("file:"):
         chunks = st.session_state.file
         
         # for small files use it as a whole
@@ -39,7 +53,7 @@ def get_response(user_question):
             context = ""
             for doc in docs:
                 context += doc.page_content + " "
-
+        print(context)
         response = chat.send_message(f"""Answer the question based on the context: 
                                      Context: {context}
                                      Question: {user_question} 
@@ -64,6 +78,9 @@ def main():
                     )
     st.title(':rainbow[AI ChatBot using Gemini] :left_speech_bubble:')
 
+    if "is_new_img" not in st.session_state:
+        st.session_state.is_new_img = False
+    
     # Init boolean variable to check if there is a new file
     if "is_new_file" not in st.session_state:
         st.session_state.is_new_file = False
@@ -75,9 +92,11 @@ def main():
     if "messages" not in st.session_state:
         st.session_state.messages = []
     
+    uploaded_image = st.file_uploader("Upload Image ", type="png")
+    st.write("Write *' img: '* to ask questions about the uploaded image")
     uploaded_file = st.file_uploader("Upload file ", type="pdf", on_change=isNew)
+    st.write("Write *' file: '* to access the file content")
     user_input = st.chat_input("What is up?")
-    st.write("Write \" file: \" to access the file content")
 
     # Display messagess
     for message in st.session_state.messages:
@@ -107,7 +126,7 @@ def main():
                 
                 # Create response
                 try:
-                    response = get_response(user_input)
+                    response = get_response(user_input, uploaded_image)
                 except:
                     response = "Error getting the response"
             
